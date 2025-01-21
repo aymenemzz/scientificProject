@@ -27,5 +27,3 @@ plt.title('Comparison of total Apples and Bananas')
 
 # Show the plot
 plt.show()
-
-pipicaca
