@@ -38,25 +38,9 @@ def initialize_libraries():
     global train_test_split, GridSearchCV, cross_val_score, KNeighborsClassifier
     global classification_report, confusion_matrix, accuracy_score, f1_score, roc_curve, auc, roc_auc_score
 
-    import numpy as np
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    from scipy.stats import chi2_contingency, kendalltau
-    import xgboost as xgb
-
     # Pour le prétraitement des données
-    from sklearn.preprocessing import StandardScaler, OneHotEncoder, OrdinalEncoder
-    from sklearn.impute import KNNImputer
-    from sklearn.compose import ColumnTransformer
-    from sklearn.pipeline import Pipeline
-    from sklearn.feature_selection import VarianceThreshold
 
     # Pour la modélisation
-    from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
-    from sklearn.neighbors import KNeighborsClassifier
-    from sklearn.metrics import (classification_report, confusion_matrix, 
-                                 accuracy_score, f1_score, roc_curve, auc, roc_auc_score)
 
 
 # In[289]:
