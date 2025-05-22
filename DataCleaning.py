@@ -69,33 +69,18 @@ sns.set_palette('Set2')
 df = pd.read_csv('./data/heart_disease_data.csv')
 
 
-# In[52]:
-
-
-#Affichage des premiéres lignes
-display(df.head())
-
-
-# ## 1) ANalyse genérale
-
 # In[53]:
 
 
 # Vérification des valeurs manquantes
-print("\nValeurs manquantes :")
-print(df.isnull().sum())
 
 
 # In[54]:
 
 
-#Informations générales 
-print("Informations sur les données :")
 df.info()
-
-print("\nStatistiques descriptives :")
 display(df.describe())
- 
+
 
 
 # ### 1.1) Examen de la distribution de la target classe!
@@ -104,7 +89,6 @@ display(df.describe())
 
 
 class_distribution = df['HeartDisease'].value_counts(normalize=True) * 100
-print("Distribution des classes:")
 print(f"Pas de maladie cardiaque (0): {class_distribution[0]:.2f}%")
 print(f"Maladie cardiaque (1): {class_distribution[1]:.2f}%")
 
@@ -141,24 +125,24 @@ axes = axes.flatten()
 for i, feature in enumerate(cat_features):
     # Comptage des occurrences avec le statut de maladie
     crosstab = pd.crosstab(df[feature], df['HeartDisease'])
-    
+
     # Vérification des colonnes pour éviter les erreurs
     if 0 not in crosstab.columns:
         crosstab[0] = 0
     if 1 not in crosstab.columns:
         crosstab[1] = 0
-    
+
     # Création d'une colonne "Total"
     crosstab['Total'] = crosstab.sum(axis=1)
-    
+
     # Plot pondéré par le total
     crosstab = crosstab.sort_values(by='Total', ascending=False)
     crosstab[[0, 1]].plot(kind='bar', stacked=True, ax=axes[i], color=['lightblue', 'salmon'])
-    
+
     # Ajout des effectifs totaux sur chaque barre
     for j, (index, row) in enumerate(crosstab.iterrows()):
         axes[i].text(j, row['Total'] + 2, f"{int(row['Total'])}", ha='center', va='bottom', fontweight='bold')
-    
+
     # Titres et légendes
     axes[i].set_title(f'{feature} - Effectifs et Maladie Cardiaque')
     axes[i].set_xlabel(feature)
@@ -181,10 +165,10 @@ fig, axes = plt.subplots(len(num_features), 2, figsize=(16, 20))
 
 for i, feature in enumerate(num_features):
     # Histogramme
-    sns.histplot(data=df, x=feature, hue='HeartDisease', multiple="stack", 
+    sns.histplot(data=df, x=feature, hue='HeartDisease', multiple="stack",
                  palette=['lightblue', 'salmon'], kde=True, ax=axes[i, 0])
     axes[i, 0].set_title(f'Distribution de {feature} par statut de maladie cardiaque')
-    
+
     # Boxplot
     sns.boxplot(data=df, x='HeartDisease', y=feature, palette=['lightblue', 'salmon'], hue = 'HeartDisease', ax=axes[i, 1])
     axes[i, 1].set_title(f'Boxplot de {feature} par statut de maladie cardiaque')
@@ -194,7 +178,7 @@ plt.tight_layout()
 plt.savefig('images/numerique_plot.png')
 
 
-# ## 2) Corrélations et détermination des variables importantes 
+# ## 2) Corrélations et détermination des variables importantes
 
 # ### 2.1) Matrice de corrélation
 
@@ -211,7 +195,7 @@ def cramers_v(x, y):
     return np.sqrt(phi2 / min(k-1, r-1))
 
 # Création d'une matrice de corrélation mixte
-corr_matrix = pd.DataFrame(index=cat_features+num_features+['HeartDisease'], 
+corr_matrix = pd.DataFrame(index=cat_features+num_features+['HeartDisease'],
                            columns=cat_features+num_features+['HeartDisease'])
 
 print("\nConstruction de la matrice de corrélation mixte...")
@@ -239,15 +223,13 @@ plt.title("Matrice de corrélation mixte (numérique + catégorielle)")
 plt.show()
 
 
-# ### 2.1 Analyse des corrélations 
+# ### 2.1 Analyse des corrélations
 
 # In[59]:
 
 
 # Corrélations avec la variable cible
 target_corr = corr_matrix['HeartDisease'].sort_values(ascending=False)
-print("\nCorrélations avec la variable cible (HeartDisease):")
-print(target_corr)
 
 # Top 5 des variables les plus corrélées avec la maladie cardiaque
 plt.figure(figsize=(10, 6))
@@ -266,8 +248,6 @@ plt.show()
 # On crée une copie de la matrice sans la diagonale pour trouver les corrélations élevées
 corr_matrix_no_diag = corr_matrix.copy()
 np.fill_diagonal(corr_matrix_no_diag.values, 0)
-print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-print(corr_matrix_no_diag['HeartDisease'])
 # Seuil de corrélation élevée
 high_corr_threshold = 0.6
 high_corr_pairs = []
@@ -283,11 +263,9 @@ for i in range(len(corr_matrix_no_diag.columns)):
 
 # Afficher les paires fortement corrélées
 if high_corr_pairs:
-    print(f"\nVariables fortement corrélées entre elles (|corr| >= {high_corr_threshold}):")
-    for var1, var2, corr in high_corr_pairs:
-        print(f"- {var1} et {var2}: {corr:.3f}")
+    pass
 else:
-    print(f"\nAucune paire de variables fortement corrélées n'a été trouvée (seuil: {high_corr_threshold})")
+    pass
 
 
 # ### 2.3 Sélection des variables à conserver en éliminant les redondances
@@ -299,7 +277,6 @@ else:
 corr_target= 0.3
 corr_with_target = corr_matrix['HeartDisease'].drop('HeartDisease').abs()
 important_features = corr_with_target[corr_with_target > corr_target].index.tolist()
-print(f"\nVariables corrélées avec HeartDisease (|corr| > {corr_target}): {important_features}")
 
 # 2. Élimination des variables redondantes
 features_to_remove = set()
@@ -315,10 +292,9 @@ for var1, var2, _ in high_corr_pairs:
 
 # Variables finales à conserver
 final_features = [f for f in df.columns if f != 'HeartDisease' and f not in features_to_remove]
-print(f"\nVariables sélectionnées après élimination des redondances: {final_features}")
 
 
-# 
+#
 # ## 3) PRÉPARATION DES DONNÉES POUR LA MODÉLISATION
 
 # ### 3.1) Séparation des features et de la variable cible
@@ -337,9 +313,6 @@ y = df['HeartDisease']
 
 categorical_features = X.select_dtypes(include=['object']).columns.tolist()
 numerical_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
-
-print("\nVariables catégorielles sélectionnées:", categorical_features)
-print("Variables numériques sélectionnées:", numerical_features)
 
 # Variables ordinales avec ordre naturel
 st_slope_categories = ['Up', 'Flat', 'Down']
@@ -413,16 +386,8 @@ if categorical_no_order:
 if ordinal_features:
     transformed_feature_names.extend(ordinal_features)
 
-print("\nNoms des colonnes après transformation:", transformed_feature_names)
-
 # Création d'un DataFrame avec les données transformées pour inspection
 X_train_df = pd.DataFrame(X_train_transformed, columns=transformed_feature_names)
-print("\nAperçu du DataFrame après transformation:")
-print(X_train_df.head())
-
-# Statistiques du DataFrame transformé
-print("\nStatistiques descriptives du DataFrame transformé:")
-print(X_train_df.describe())
 
 
 # ## 4. Recherche du meilleur K
@@ -435,22 +400,17 @@ k_values = range(1, 31, 2)  # k impairs de 1 à 29
 accuracies = []
 f1_scores = []
 
-print("\nRecherche du meilleur k pour KNN...")
+# Recherche du meilleur k pour KNN...
 for k in k_values:
     knn = KNeighborsClassifier(n_neighbors=k)
     cv_results = cross_val_score(knn, X_train_transformed, y_train, cv=5, scoring='accuracy')
     accuracies.append(cv_results.mean())
-    
     cv_results_f1 = cross_val_score(knn, X_train_transformed, y_train, cv=5, scoring='f1')
     f1_scores.append(cv_results_f1.mean())
-    print(f"k={k}: Accuracy={cv_results.mean():.4f}, F1-score={cv_results_f1.mean():.4f}")
 
 # Afficher le k optimal selon les deux métriques
 best_k_accuracy = k_values[np.argmax(accuracies)]
 best_k_f1 = k_values[np.argmax(f1_scores)]
-
-print(f"\nMeilleur k pour l'accuracy: {best_k_accuracy} (accuracy: {max(accuracies):.4f})")
-print(f"Meilleur k pour le F1-score: {best_k_f1} (F1-score: {max(f1_scores):.4f})")
 
 # Validation avec GridSearchCV pour une recherche plus exhaustive
 param_grid = {'n_neighbors': range(1, 31, 2)}
@@ -461,8 +421,6 @@ grid_search = GridSearchCV(knn, param_grid, cv=5, scoring='f1')
 grid_search.fit(X_train_transformed, y_train)
 
 best_k_grid = grid_search.best_params_['n_neighbors']
-print(f"\nMeilleur k selon GridSearchCV: {best_k_grid}")
-print(f"Meilleur F1-score CV: {grid_search.best_score_:.4f}")
 
 # On utilise le meilleur k trouvé par GridSearchCV
 best_k = best_k_grid
@@ -482,12 +440,6 @@ y_pred_knn = best_knn.predict(X_test_transformed)
 y_prob_knn = best_knn.predict_proba(X_test_transformed)[:, 1]
 
 # Évaluation du modèle
-print("\nÉvaluation du modèle KNN:")
-print(f"Accuracy: {accuracy_score(y_test, y_pred_knn):.4f}")
-print(f"F1-score: {f1_score(y_test, y_pred_knn):.4f}")
-print(f"AUC-ROC: {roc_auc_score(y_test, y_prob_knn):.4f}")
-
-print("\nRapport de classification KNN:\n", classification_report(y_test, y_pred_knn))
 
 
 # ### 6. IMPLÉMENTATION DU MODÈLE XGBOOST en prenant en compte les variables catégorielles
@@ -518,7 +470,7 @@ output_columns = numerical_features + categorical_features
 X_train_xgb = pd.DataFrame(X_train_xgb_array, columns=output_columns)
 X_test_xgb = pd.DataFrame(X_test_xgb_array, columns=output_columns)
 
-# Conversion des types de colonnes 
+# Conversion des types de colonnes
 for col in numerical_features:
     X_train_xgb[col] = pd.to_numeric(X_train_xgb[col])
     X_test_xgb[col] = pd.to_numeric(X_test_xgb[col])
@@ -528,8 +480,6 @@ for col in categorical_features:
     X_test_xgb[col] = X_test_xgb[col].astype('category')
 
 # Vérification des types de données
-print("Types de données du DataFrame d'entraînement:")
-print(X_train_xgb.dtypes)
 
 # Modèle XGBoost avec support natif des catégories
 xgb_model = xgb.XGBClassifier(
@@ -548,22 +498,6 @@ y_pred_xgb = xgb_model.predict(X_test_xgb)
 y_prob_xgb = xgb_model.predict_proba(X_test_xgb)[:, 1]
 
 # Évaluation du modèle XGBoost
-print("\nÉvaluation du modèle XGBoost (sans opti):")
-print(f"Accuracy: {accuracy_score(y_test, y_pred_xgb):.4f}")
-print(f"F1-score: {f1_score(y_test, y_pred_xgb):.4f}")
-print(f"AUC-ROC: {roc_auc_score(y_test, y_prob_xgb):.4f}")
-
-print("\nRapport de classification XGBoost (sans opti):\n", classification_report(y_test, y_pred_xgb))
-
-# Matrice de confusion pour XGBoost 
-cm_xgb = confusion_matrix(y_test, y_pred_xgb)
-tn, fp, fn, tp = cm_xgb.ravel()
-print(f"\nMatrice de confusion XGBoost :")
-print(f"Vrais Négatifs (TN): {tn}")
-print(f"Faux Positifs (FP): {fp}")
-print(f"Faux Négatifs (FN): {fn}")
-print(f"Vrais Positifs (TP): {tp}")
-print(f"Taux de faux négatifs: {fn/(fn+tp):.4f} ({fn} sur {fn+tp} cas positifs)")
 
 
 # ## 7) Feature engineering
@@ -616,7 +550,6 @@ X_train_fe[numerical_features] = scaler.fit_transform(X_train_fe[numerical_featu
 X_test_fe[numerical_features] = scaler.transform(X_test_fe[numerical_features])
 
 #Application de techniques de rééchantillonnage pour équilibrer les classes
-print("\nApplication de techniques de rééchantillonnage:")
 
 # SMOTE pour surreprésenter la classe minoritaire (maladies cardiaques)
 smote = SMOTE(random_state=42)
@@ -766,7 +699,7 @@ eval_set = [(X_train_sub, y_train_sub), (X_val, y_val)]
 xgb_optimized.fit(
     X_train_sub, y_train_sub,
     eval_set=eval_set,
-    verbose=True
+    verbose=False
 )
 
 y_pred_xgb_optimized = xgb_optimized.predict(X_test_fe)  # Nouveau modèle optimisé sur les features enrichies
@@ -1479,26 +1412,6 @@ else:
         print(f"  Compromis nécessaire entre performance et équité:")
         print(f"  - Pour la meilleure performance: {best_overall_model.replace('_Base', ' (Base)').replace('_Opt', ' (Opt)')} (AUC={best_auc:.4f})")
         print(f"  - Pour la meilleure équité: {most_fair_model.replace('_Base', ' (Base)').replace('_Opt', ' (Opt)')} (écart FNR={smallest_fnr_gap:.4f})")
-
-
-# ### 10. COMPARAISON DES PERFORMANCES DES MODÈLES
-
-# In[77]:
-
-
-print("\nComparaison des performances:")
-print(f"KNN (k={best_k}) - Accuracy: {accuracy_score(y_test, y_pred_knn):.4f}, F1-score: {f1_score(y_test, y_pred_knn):.4f}, AUC-ROC: {roc_auc_score(y_test, y_prob_knn):.4f}")
-print(f"XGBoost - Accuracy: {accuracy_score(y_test, y_pred_xgb):.4f}, F1-score: {f1_score(y_test, y_pred_xgb):.4f}, AUC-ROC: {roc_auc_score(y_test, y_prob_xgb):.4f}")
-
-# 10. IMPORTANCE DES VARIABLES POUR XGBOOST
-
-# Obtenir l'importance des variables pour XGBoost
-feature_importance = xgb_model.feature_importances_
-sorted_idx = np.argsort(feature_importance)
-
-print("\nImportance des variables selon XGBoost:")
-for i in sorted_idx[::-1]:
-    print(f"{X_train_xgb.columns[i]}: {feature_importance[i]:.4f}")
 
 
 # In[ ]:
