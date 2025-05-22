@@ -14,7 +14,19 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 def predict(predict_file):
     if not os.path.exists("trained_model.pkl"):
-        raise FileNotFoundError("Modèle non trouvé. Entraîne-le d'abord avec 'train'")
+        print("🔧 Aucun modèle trouvé. Entraînement automatique en cours...")
+        model = MLPClassifier(hidden_layer_sizes=(32, 16), activation='relu', max_iter=500, early_stopping=True, random_state=42)
+        model.fit(X_train, y_train)
+        joblib.dump({
+            "model": model,
+            "X_test": X_test,
+            "y_test": y_test
+        }, "trained_model.pkl")
+        print("✅ Modèle entraîné et sauvegardé.")
+    else:
+        model_data = joblib.load("trained_model.pkl")
+        model = model_data["model"]
+
     if not os.path.exists(predict_file):
         raise FileNotFoundError(f"Fichier de données non trouvé : {predict_file}")
     model_data = joblib.load("trained_model.pkl")
@@ -98,7 +110,10 @@ elif len(sys.argv) > 2 and sys.argv[1] == "predict":
 elif not os.path.exists("trained_model.pkl"):
     raise FileNotFoundError("Aucun modèle trouvé. Lance d'abord le script avec l'argument 'train'")
 else:
-    model = joblib.load("trained_model.pkl")
+    model_data = joblib.load("trained_model.pkl")
+    model = model_data["model"]
+    X_test = model_data["X_test"]
+    y_test = model_data["y_test"]
     print("📥 Modèle chargé depuis le fichier")
     y_pred = model.predict(X_test)
     print(confusion_matrix(y_test, y_pred))

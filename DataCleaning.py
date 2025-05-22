@@ -1530,6 +1530,14 @@ def predict_model(input_df, model_type='xgb'):
     else:
         raise ValueError("Type de modèle non reconnu. Utilisez 'knn', 'xgb' ou 'xgb_opt'.")
 
+    # Résumé final pour l'utilisateur
+    for i in range(len(prediction)):
+        etat = "malade" if prediction[i] == 1 else "non malade"
+        print(f"Patient {i+1} : Probabilité = {proba[i]:.2%} → {etat}")
+
+    # Le retour est un tuple (prediction, proba)
+    # - prediction : tableau numpy des classes prédites (0=non malade, 1=malade)
+    # - proba : tableau numpy des probabilités prédites d'être malade (valeurs entre 0 et 1)
     return prediction, proba
 
 if __name__ == "__main__":
