@@ -8,3 +8,4 @@ imbalanced-learn~=0.13.0
 xgboost~=3.0.1
 shap~=0.47.2
 statsmodels~=0.14.4
+pygame~=2.6.0
