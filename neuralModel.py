@@ -1,3 +1,4 @@
+
 import warnings
 from sklearn.exceptions import ConvergenceWarning
 import sys
@@ -9,6 +10,27 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report, confusion_matrix
+
+
+def predict(predict_file):
+    if not os.path.exists("trained_model.pkl"):
+        raise FileNotFoundError("Modèle non trouvé. Entraîne-le d'abord avec 'train'")
+    if not os.path.exists(predict_file):
+        raise FileNotFoundError(f"Fichier de données non trouvé : {predict_file}")
+    model_data = joblib.load("trained_model.pkl")
+    model = model_data["model"]
+    print("🔍 Prédiction à partir du modèle sauvegardé")
+    df_pred = pd.read_csv(predict_file)
+    df_pred = pd.get_dummies(df_pred, drop_first=True)
+    for col in X.columns:
+        if col not in df_pred.columns:
+            df_pred[col] = 0
+    df_pred = df_pred[X.columns]
+    df_pred_scaled = scaler.transform(df_pred)
+    proba = model.predict_proba(df_pred_scaled)[0][1]
+    print(f"🩺 Probabilité d'être malade : {proba:.2%}")
+    print(f"🩺 Verdict : {'Malade' if proba >= 0.5 else 'Pas malade'}")
+
 
 df = pd.read_csv("data/heart_disease_data.csv")
 df = pd.get_dummies(df, drop_first=True)
@@ -71,27 +93,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "train":
     print(classification_report(y_test, y_pred))
 
 elif len(sys.argv) > 2 and sys.argv[1] == "predict":
-    predict_file = sys.argv[2]
-    if not os.path.exists("trained_model.pkl"):
-        raise FileNotFoundError("Modèle non trouvé. Entraîne-le d'abord avec 'train'")
-    if not os.path.exists(predict_file):
-        raise FileNotFoundError(f"Fichier de données non trouvé : {predict_file}")
-    model_data = joblib.load("trained_model.pkl")
-    model = model_data["model"]
-    print("🔍 Prédiction à partir du modèle sauvegardé")
-    # Charger les données du patient
-    df_pred = pd.read_csv(predict_file)
-    df_pred = pd.get_dummies(df_pred, drop_first=True)
-    # Aligner les colonnes avec celles du modèle d'entraînement
-    for col in X.columns:
-        if col not in df_pred.columns:
-            df_pred[col] = 0
-    df_pred = df_pred[X.columns]  # réordonner les colonnes
-    # Appliquer la même normalisation
-    df_pred_scaled = scaler.transform(df_pred)
-    proba = model.predict_proba(df_pred_scaled)[0][1]
-    print(f"🩺 Probabilité d'être malade : {proba:.2%}")
-    print(f"🩺 Verdict : {'Malade' if proba >= 0.5 else 'Pas malade'}")
+    predict(sys.argv[2])
 
 elif not os.path.exists("trained_model.pkl"):
     raise FileNotFoundError("Aucun modèle trouvé. Lance d'abord le script avec l'argument 'train'")
