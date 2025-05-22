@@ -1,6 +1,7 @@
 import pygame
 import random
 import csv
+import csv
 from main import predict
 
 pygame.init()
@@ -40,7 +41,6 @@ inputs = {field["key"]: "" for field in fields}
 dropdown_open = None
 active_field = None
 result_text = ""
-
 
 def transform_input(inputs):
     key_map = {
@@ -158,6 +158,9 @@ def main():
             elif event.type == pygame.MOUSEWHEEL:
                 scroll_offset += event.y * scroll_speed
 
+            elif event.type == pygame.MOUSEWHEEL:
+                scroll_offset += event.y * scroll_speed
+
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     print(transform_input(inputs))  # Print inputs when spacebar is pressed
@@ -203,9 +206,6 @@ def main():
                 if predict_rect.collidepoint(mx, my):
                     if all(inputs[f["key"]] for f in fields):
                         dict_to_csv(transform_input(inputs))
-                        model = inputs["model"]
-                        predict(model)
-
                         knn_pred, xgb_pred = predict_dummy_model(inputs)
                         result_text = f"KNN: {'Malade' if knn_pred else 'Sain'} | XGBoost: {'Malade' if xgb_pred else 'Sain'}"
                     else:
@@ -218,6 +218,7 @@ def main():
                     active_field = None
                 else:
                     inputs[active_field] += event.unicode
+
 
         # Clamp scroll
         total_form_height = y_offset + 100
