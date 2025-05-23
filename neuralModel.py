@@ -42,7 +42,8 @@ def predict(predict_file):
     proba = model.predict_proba(df_pred_scaled)[0][1]
     print(f"🩺 Probabilité d'être malade : {proba:.2%}")
     print(f"🩺 Verdict : {'Malade' if proba >= 0.5 else 'Pas malade'}")
-
+    verdict = "Malade" if proba >= 0.5 else "Pas malade"
+    return f"{verdict} (précision : {proba:.2%})"
 
 df = pd.read_csv("data/heart_disease_data.csv")
 df = pd.get_dummies(df, drop_first=True)

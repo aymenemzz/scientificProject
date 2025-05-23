@@ -1,3 +1,5 @@
+import pandas as pd
+import os
 #!/usr/bin/env python
 # coding: utf-8
 
@@ -6,7 +8,7 @@
 
 # ## Objectif du Projet
 # Les maladies cardiaques constituent l'une des principales causes de mortalité dans le monde. La capacité à prédire le risque de développer une maladie cardiaque à partir de données médicales est cruciale pour mettre en place des mesures préventives adaptées, améliorer les traitements, et sauver des vies. Ce projet a pour but de développer un modèle prédictif capable d'évaluer le risque qu'un patient soit atteint d'une maladie cardiaque en se basant sur ses données cliniques, et ceci avec une bonne precision.
-# pas de préprocesseur, knn inputer to handle nanvlues 
+# pas de préprocesseur, knn inputer to handle nanvlues
 
 # ## Description des Données
 # Le dataset utilisé dans ce projet, intitulé heart_disease_data.csv, contient les informations médicales de plusieurs patients.
@@ -24,7 +26,7 @@
 # - **ST_Slope** : pente du segment ST à l’effort (Up : ascendante, Flat : plate, Down :
 # descendante).
 # - **HeartDisease** : présence ou absence de maladie cardiaque (1 : Oui, 0 : Non).
-# - knn inputer 
+# - knn inputer
 
 # In[49]:
 
@@ -597,10 +599,10 @@ plt.tight_layout()
 plt.show()
 
 
-# 
+#
 # ## 8) AMÉLIORATION DU MODÈLE XGBOOST
 
-# ### 8.1 Recherche RandomizedSearchCV plus étendue pour les hyperparamètres de XGBoost 
+# ### 8.1 Recherche RandomizedSearchCV plus étendue pour les hyperparamètres de XGBoost
 
 # In[71]:
 
@@ -635,7 +637,7 @@ cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 def custom_scorer(y_true, y_pred):
     cm = confusion_matrix(y_true, y_pred)
     tn, fp, fn, tp = cm.ravel()
-    
+
     # Pénalité plus forte pour les faux négatifs (coefficient 2)
     weighted_error = (fp + 2*fn) / (tn + fp + 2*fn + tp)
     return 1 - weighted_error
@@ -665,13 +667,13 @@ print(f"Meilleur score F1 (CV): {random_search.best_score_:.4f}")
 best_params = random_search.best_params_
 
 
-# ### 8.2) Entraînement du modèle final avec early stopping adapté 
+# ### 8.2) Entraînement du modèle final avec early stopping adapté
 
 # In[72]:
 
 
 # Vérification de l'alignement des indices
-# Réinitialisation 
+# Réinitialisation
 X_train_smote = X_train_smote.reset_index(drop=True)
 y_train_smote = y_train_smote.reset_index(drop=True)
 X_test_fe = X_test_fe.reset_index(drop=True)
@@ -713,12 +715,12 @@ def evaluate_model(y_true, y_pred, y_prob, model_name):
     roc_auc = roc_auc_score(y_true, y_prob)
     precision = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
-    
+
     cm = confusion_matrix(y_true, y_pred)
     tn, fp, fn, tp = cm.ravel()
     fnr = fn / (fn + tp) if (fn + tp) > 0 else 0  # Taux de faux négatifs (crucial en médecine)
     fpr = fp / (fp + tn) if (fp + tn) > 0 else 0  # Taux de faux positifs
-    
+
     # Afficher les métriques
     print(f"\nÉvaluation du modèle {model_name}:")
     print(f"Accuracy: {accuracy:.4f}")
@@ -729,15 +731,15 @@ def evaluate_model(y_true, y_pred, y_prob, model_name):
     print(f"AUC-ROC: {roc_auc:.4f}")
     print(f"Taux de faux négatifs: {fnr:.4f}")
     print(f"Taux de faux positifs: {fpr:.4f}")
-    
+
     print("\nMatrice de confusion:")
     print(f"[[{tn} {fp}]")
     print(f" [{fn} {tp}]]")
-    
+
     # Calculer l'intervalle de confiance à 95% pour l'AUC-ROC
     n_bootstraps = 1000
     bootstrapped_scores = []
-    
+
     # Bootstrapping pour l'intervalle de confiance
     rng = np.random.RandomState(42)
     for i in range(n_bootstraps):
@@ -746,15 +748,15 @@ def evaluate_model(y_true, y_pred, y_prob, model_name):
             # Skip this bootstrap if only one class is present
             continue
         bootstrapped_scores.append(roc_auc_score(y_true[indices], y_prob[indices]))
-        
+
     # Calculer l'intervalle de confiance à 95%
     sorted_scores = np.array(bootstrapped_scores)
     sorted_scores.sort()
     confidence_lower = sorted_scores[int(0.025 * len(sorted_scores))]
     confidence_upper = sorted_scores[int(0.975 * len(sorted_scores))]
-    
+
     print(f"Intervalle de confiance à 95% pour AUC-ROC: [{confidence_lower:.4f}, {confidence_upper:.4f}]")
-    
+
     return {
         'accuracy': accuracy,
         'f1': f1,
@@ -801,11 +803,11 @@ def analyze_by_sex(results_df, model_suffix):
     """Analyser les performances d'un modèle par sexe"""
     male_results = results_df[results_df['Sex'] == 'M']
     female_results = results_df[results_df['Sex'] == 'F']
-    
+
     # Calculer les métriques pour chaque sexe
     pred_col = f'Predicted_{model_suffix}'
     prob_col = f'Prob_{model_suffix}'
-    
+
     # Hommes
     male_metrics = {
         'accuracy': accuracy_score(male_results['TrueLabel'], male_results[pred_col]),
@@ -813,12 +815,12 @@ def analyze_by_sex(results_df, model_suffix):
         'auc': roc_auc_score(male_results['TrueLabel'], male_results[prob_col]),
         'recall': recall_score(male_results['TrueLabel'], male_results[pred_col])
     }
-    
+
     male_cm = confusion_matrix(male_results['TrueLabel'], male_results[pred_col])
     tn_m, fp_m, fn_m, tp_m = male_cm.ravel()
     male_metrics['fnr'] = fn_m / (fn_m + tp_m) if (fn_m + tp_m) > 0 else 0
     male_metrics['specificity'] = tn_m / (tn_m + fp_m) if (tn_m + fp_m) > 0 else 0
-    
+
     # Femmes
     female_metrics = {
         'accuracy': accuracy_score(female_results['TrueLabel'], female_results[pred_col]),
@@ -826,14 +828,14 @@ def analyze_by_sex(results_df, model_suffix):
         'auc': roc_auc_score(female_results['TrueLabel'], female_results[prob_col]),
         'recall': recall_score(female_results['TrueLabel'], female_results[pred_col])
     }
-    
+
     female_cm = confusion_matrix(female_results['TrueLabel'], female_results[pred_col])
     tn_f, fp_f, fn_f, tp_f = female_cm.ravel()
     female_metrics['fnr'] = fn_f / (fn_f + tp_f) if (fn_f + tp_f) > 0 else 0
     female_metrics['specificity'] = tn_f / (tn_f + fp_f) if (tn_f + fp_f) > 0 else 0
-    
+
     return {
-        'male': male_metrics, 
+        'male': male_metrics,
         'female': female_metrics,
         'male_cm': male_cm,
         'female_cm': female_cm,
@@ -942,11 +944,11 @@ def analyze_by_sex(results_df, model_suffix):
     """Analyser les performances d'un modèle par sexe avec métriques complètes"""
     male_results = results_df[results_df['Sex'] == 'M']
     female_results = results_df[results_df['Sex'] == 'F']
-    
+
     # Colonnes des prédictions et probabilités
     pred_col = f'Predicted_{model_suffix}'
     prob_col = f'Prob_{model_suffix}'
-    
+
     # Métriques pour hommes
     if len(male_results) > 0:
         male_metrics = {
@@ -956,17 +958,17 @@ def analyze_by_sex(results_df, model_suffix):
             'recall': recall_score(male_results['TrueLabel'], male_results[pred_col]),
             'auc': roc_auc_score(male_results['TrueLabel'], male_results[prob_col])
         }
-        
+
         male_cm = confusion_matrix(male_results['TrueLabel'], male_results[pred_col])
         tn_m, fp_m, fn_m, tp_m = male_cm.ravel()
         male_metrics['fnr'] = fn_m / (fn_m + tp_m) if (fn_m + tp_m) > 0 else 0
         male_metrics['fpr'] = fp_m / (fp_m + tn_m) if (fp_m + tn_m) > 0 else 0
         male_metrics['specificity'] = tn_m / (tn_m + fp_m) if (tn_m + fp_m) > 0 else 0
     else:
-        male_metrics = {metric: np.nan for metric in 
+        male_metrics = {metric: np.nan for metric in
                        ['accuracy', 'precision', 'f1', 'recall', 'auc', 'fnr', 'fpr', 'specificity']}
         male_cm = np.zeros((2, 2))
-    
+
     # Métriques pour femmes
     if len(female_results) > 0:
         female_metrics = {
@@ -976,25 +978,25 @@ def analyze_by_sex(results_df, model_suffix):
             'recall': recall_score(female_results['TrueLabel'], female_results[pred_col]),
             'auc': roc_auc_score(female_results['TrueLabel'], female_results[prob_col])
         }
-        
+
         female_cm = confusion_matrix(female_results['TrueLabel'], female_results[pred_col])
         tn_f, fp_f, fn_f, tp_f = female_cm.ravel()
         female_metrics['fnr'] = fn_f / (fn_f + tp_f) if (fn_f + tp_f) > 0 else 0
         female_metrics['fpr'] = fp_f / (fp_f + tn_f) if (fp_f + tn_f) > 0 else 0
         female_metrics['specificity'] = tn_f / (tn_f + fp_f) if (tn_f + fp_f) > 0 else 0
     else:
-        female_metrics = {metric: np.nan for metric in 
+        female_metrics = {metric: np.nan for metric in
                          ['accuracy', 'precision', 'f1', 'recall', 'auc', 'fnr', 'fpr', 'specificity']}
         female_cm = np.zeros((2, 2))
-    
+
     # Calculer l'écart entre les sexes
     gap_metrics = {
-        metric: male_metrics[metric] - female_metrics[metric] 
+        metric: male_metrics[metric] - female_metrics[metric]
         for metric in male_metrics.keys()
     }
-    
+
     return {
-        'male': male_metrics, 
+        'male': male_metrics,
         'female': female_metrics,
         'gap': gap_metrics,
         'male_cm': male_cm,
@@ -1027,10 +1029,10 @@ for model in model_names:
     elif model == 'XGB_Opt':
         y_pred = y_pred_xgb_optimized
         y_prob = y_prob_xgb_optimized
-    
+
     overall_cm = confusion_matrix(y_test, y_pred)
     tn, fp, fn, tp = overall_cm.ravel()
-    
+
     overall_metrics = {
         'accuracy': accuracy_score(y_test, y_pred),
         'precision': precision_score(y_test, y_pred),
@@ -1041,7 +1043,7 @@ for model in model_names:
         'fnr': fn / (fn + tp) if (fn + tp) > 0 else 0,
         'fpr': fp / (fp + tn) if (fp + tn) > 0 else 0
     }
-    
+
     # Ajouter à la liste de comparaison
     for metric in metrics_to_display:
         comparison_data.append({
@@ -1058,7 +1060,7 @@ comparison_df = pd.DataFrame(comparison_data)
 
 # Pivoter pour une meilleure visualisation
 comparison_pivot = comparison_df.pivot_table(
-    index=['Model', 'Metric'], 
+    index=['Model', 'Metric'],
     values=['Overall', 'Male', 'Female', 'Gap'],
     aggfunc='first'
 ).reset_index()
@@ -1092,16 +1094,16 @@ metric_data = comparison_df[comparison_df['Metric'].isin(key_metrics)]
 
 # Réorganiser les données pour Seaborn
 plot_data = pd.melt(
-    metric_data, 
-    id_vars=['Model', 'Metric'], 
+    metric_data,
+    id_vars=['Model', 'Metric'],
     value_vars=['Overall', 'Male', 'Female'],
     var_name='Gender', value_name='Value'
 )
 
 sns.barplot(
-    data=plot_data, 
-    x='Metric', y='Value', hue='Model', 
-    palette='viridis', 
+    data=plot_data,
+    x='Metric', y='Value', hue='Model',
+    palette='viridis',
     ax=ax1
 )
 ax1.set_title('Comparaison des métriques principales par modèle', fontsize=12)
@@ -1116,9 +1118,9 @@ ax2 = plt.subplot(gs[0, 1])
 gap_data = comparison_df[comparison_df['Metric'].isin(key_metrics)].copy()
 
 sns.barplot(
-    data=gap_data, 
+    data=gap_data,
     x='Metric', y='Gap', hue='Model',
-    palette='viridis', 
+    palette='viridis',
     ax=ax2
 )
 ax2.set_title('Écart des performances entre hommes et femmes par modèle', fontsize=12)
@@ -1135,17 +1137,17 @@ error_data = comparison_df[comparison_df['Metric'].isin(error_metrics)].copy()
 
 # Réorganiser pour Seaborn
 error_plot = pd.melt(
-    error_data, 
-    id_vars=['Model', 'Metric'], 
+    error_data,
+    id_vars=['Model', 'Metric'],
     value_vars=['Male', 'Female'],
     var_name='Gender', value_name='Value'
 )
 
 # Tracer le graphique des erreurs
 sns.barplot(
-    data=error_plot, 
+    data=error_plot,
     x='Metric', y='Value', hue='Model',
-    palette='viridis', 
+    palette='viridis',
     ax=ax3
 )
 ax3.set_title('Taux d\'erreurs par sexe et modèle', fontsize=12)
@@ -1165,21 +1167,21 @@ for i, model in enumerate(model_names):
     male_data = sex_results[model]['male_data']
     female_data = sex_results[model]['female_data']
     prob_col = f'Prob_{model}'
-    
+
     # Courbe ROC pour les hommes
     if len(male_data) > 0:
         fpr_m, tpr_m, _ = roc_curve(male_data['TrueLabel'], male_data[prob_col])
         roc_auc_m = auc(fpr_m, tpr_m)
         ax4.plot(fpr_m, tpr_m, linestyle=line_styles[0], color=colors[i],
-                 label=f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - Hommes (AUC={roc_auc_m:.3f})', 
+                 label=f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - Hommes (AUC={roc_auc_m:.3f})',
                  alpha=0.7)
-    
+
     # Courbe ROC pour les femmes
     if len(female_data) > 0:
         fpr_f, tpr_f, _ = roc_curve(female_data['TrueLabel'], female_data[prob_col])
         roc_auc_f = auc(fpr_f, tpr_f)
         ax4.plot(fpr_f, tpr_f, linestyle=line_styles[1], color=colors[i],
-                 label=f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - Femmes (AUC={roc_auc_f:.3f})', 
+                 label=f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - Femmes (AUC={roc_auc_f:.3f})',
                  alpha=0.7)
 
 ax4.plot([0, 1], [0, 1], 'k--', alpha=0.3)
@@ -1206,14 +1208,14 @@ for i, model in enumerate(model_names):
     axes[0, i].set_title(f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - Hommes')
     axes[0, i].set_ylabel('Vérité')
     axes[0, i].set_xlabel('Prédiction')
-    
+
     # Calcul des taux
     if male_cm.sum() > 0:
         tn, fp, fn, tp = male_cm.ravel()
         fnr = fn / (fn + tp) if (fn + tp) > 0 else 0
         fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
         axes[0, i].set_xlabel(f'Prédiction (FNR={fnr:.2f}, FPR={fpr:.2f})')
-    
+
     # Matrice de confusion pour les femmes
     female_cm = sex_results[model]['female_cm']
     sns.heatmap(female_cm, annot=True, fmt='d', cmap='Reds', ax=axes[1, i],
@@ -1221,7 +1223,7 @@ for i, model in enumerate(model_names):
     axes[1, i].set_title(f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - Femmes')
     axes[1, i].set_ylabel('Vérité')
     axes[1, i].set_xlabel('Prédiction')
-    
+
     # Calcul des taux
     if female_cm.sum() > 0:
         tn, fp, fn, tp = female_cm.ravel()
@@ -1244,11 +1246,11 @@ summary_data = []
 
 for model in model_names:
     model_name = model.replace('_Base', ' (Base)').replace('_Opt', ' (Opt)')
-    
+
     # Obtenir les métriques pour ce modèle
     male_metrics = sex_results[model]['male']
     female_metrics = sex_results[model]['female']
-    
+
     # Ajouter les données au tableau récapitulatif
     for metric in key_metrics:
         if metric in male_metrics and metric in female_metrics:
@@ -1285,20 +1287,20 @@ spacing = 0.02
 for model in model_names:
     male_metrics = sex_results[model]['male']
     female_metrics = sex_results[model]['female']
-    
+
     offset = multiplier * (bar_width + spacing)
-    
+
     # Barres pour les hommes
     male_values = [male_metrics[metric] for metric in metrics_for_final_vis]
-    ax.bar(x + offset, male_values, bar_width, label=f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - H', 
+    ax.bar(x + offset, male_values, bar_width, label=f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - H',
            color=colors['Male'], alpha=0.6 + 0.2*multiplier)
-    
+
     # Barres pour les femmes
     female_values = [female_metrics[metric] for metric in metrics_for_final_vis]
-    ax.bar(x + offset + bar_width, female_values, bar_width, 
-           label=f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - F', 
+    ax.bar(x + offset + bar_width, female_values, bar_width,
+           label=f'{model.replace("_Base", " (Base)").replace("_Opt", " (Opt)")} - F',
            color=colors['Female'], alpha=0.6 + 0.2*multiplier)
-    
+
     multiplier += 1
 
 # Ajouter des lignes horizontales pour les valeurs importantes
@@ -1334,7 +1336,7 @@ for model in model_names:
         auc_val = roc_auc_score(y_test, y_prob_xgb_optimized)
         recall_val = recall_score(y_test, y_pred_xgb_optimized)
         fnr_val = 1 - recall_val
-    
+
     print(f"  - {model_disp}: AUC={auc_val:.4f}, Sensibilité={recall_val:.4f}, Taux FN={fnr_val:.4f}")
 
 print("\n2. Écarts de performance entre hommes et femmes:")
@@ -1346,7 +1348,7 @@ for model in model_names:
     female_recall = sex_results[model]['female']['recall']
     male_fnr = sex_results[model]['male']['fnr']
     female_fnr = sex_results[model]['female']['fnr']
-    
+
     print(f"  - {model_disp}:")
     print(f"      AUC: H={male_auc:.4f}, F={female_auc:.4f}, Écart={male_auc-female_auc:.4f}")
     print(f"      Sensibilité: H={male_recall:.4f}, F={female_recall:.4f}, Écart={male_recall-female_recall:.4f}")
@@ -1362,7 +1364,7 @@ for model in model_names:
         auc_val = roc_auc_score(y_test, y_prob_xgb)
     else:
         auc_val = roc_auc_score(y_test, y_prob_xgb_optimized)
-    
+
     if auc_val > best_auc:
         best_auc = auc_val
         best_overall_model = model
@@ -1394,7 +1396,7 @@ else:
         best_auc = roc_auc_score(y_test, y_prob_xgb)
     else:
         best_auc = roc_auc_score(y_test, y_prob_xgb_optimized)
-    
+
     fair_auc = 0
     if most_fair_model == 'KNN':
         fair_auc = roc_auc_score(y_test, y_prob_knn)
@@ -1402,9 +1404,9 @@ else:
         fair_auc = roc_auc_score(y_test, y_prob_xgb)
     else:
         fair_auc = roc_auc_score(y_test, y_prob_xgb_optimized)
-    
+
     auc_diff = best_auc - fair_auc
-    
+
     if auc_diff < 0.05:  # Si l'écart est petit, privilégier l'équité
         print(f"  Le modèle {most_fair_model.replace('_Base', ' (Base)').replace('_Opt', ' (Opt)')} est recommandé pour son équité entre les sexes")
         print(f"  avec une performance globale (AUC={fair_auc:.4f}) proche du meilleur modèle ({best_auc:.4f}).")
@@ -1421,37 +1423,65 @@ def predict_model(input_df, model_type='xgb'):
     """
     Prédit si un patient est malade ou non à partir de ses données,
     en utilisant soit le modèle KNN soit le modèle XGBoost optimisé.
-    - input_df : un DataFrame pandas avec une ou plusieurs lignes de patients.
+    - input_df : un DataFrame pandas ou un chemin vers un fichier CSV.
     - model_type : 'knn', 'xgb' ou 'xgb_opt'
     """
+    if isinstance(input_df, str):
+        input_df = pd.read_csv(input_df)
+
     if model_type == 'knn':
         transformed = preprocessor.transform(input_df)
         proba = best_knn.predict_proba(transformed)[:, 1]
         prediction = best_knn.predict(transformed)
     elif model_type == 'xgb':
+        import joblib
+        if not os.path.exists("models/xgb_model.joblib"):
+            from xgboost import XGBClassifier
+            xgb_model = XGBClassifier()
+            xgb_model.fit(X_train_xgb, y_train)
+            joblib.dump(xgb_model, "models/xgb_model.joblib")
+        loaded_xgb_model = joblib.load("models/xgb_model.joblib")
+
         df_copy = input_df.copy()
         for col in categorical_features:
             df_copy[col] = df_copy[col].astype('category')
-        proba = xgb_model.predict_proba(df_copy)[:, 1]
-        prediction = xgb_model.predict(df_copy)
-    elif model_type == 'xgb_opt':
-        df_copy = input_df.copy()
+        df_copy = pd.DataFrame(preprocessor_xgb.transform(df_copy), columns=output_columns)
         for col in categorical_features:
             df_copy[col] = df_copy[col].astype('category')
-        proba = xgb_optimized.predict_proba(df_copy)[:, 1]
-        prediction = xgb_optimized.predict(df_copy)
+        proba = loaded_xgb_model.predict_proba(df_copy)[:, 1]
+        prediction = loaded_xgb_model.predict(df_copy)
+    elif model_type == 'xgb_opt' or model_type == 'xgboost_opt':
+        df_copy = input_df.copy()
+        for col in categorical_features:
+            encoder = OrdinalEncoder()
+            df_copy[col] = encoder.fit_transform(df_copy[[col]])
+        imputer = KNNImputer(n_neighbors=5)
+        df_copy = pd.DataFrame(imputer.fit_transform(df_copy), columns=df_copy.columns)
+
+        df_copy['Age_Chol'] = df_copy['Age'] * df_copy['Cholesterol'] / 100
+        df_copy['MaxHR_Age_Ratio'] = df_copy['MaxHR'] / df_copy['Age']
+        df_copy['BP_ST_Depression'] = df_copy['RestingBP'] * (df_copy['Oldpeak'] + 1)
+        df_copy['Cardiac_Stress_Index'] = df_copy['RestingBP'] / df_copy['MaxHR'] * df_copy['Age'] / 50
+        df_copy['Log_Cholesterol'] = np.log1p(df_copy['Cholesterol'])
+
+        numerical_feats = df_copy.select_dtypes(include=['float64', 'int64']).columns
+        df_copy[numerical_feats] = StandardScaler().fit_transform(df_copy[numerical_feats])
+
+        import joblib
+        if not os.path.exists("models/xgb_optimized_model.joblib"):
+            joblib.dump(xgb_optimized, "models/xgb_optimized_model.joblib")
+        xgb_optimized_loaded = joblib.load("models/xgb_optimized_model.joblib")
+
+        proba = xgb_optimized_loaded.predict_proba(df_copy)[:, 1]
+        prediction = xgb_optimized_loaded.predict(df_copy)
     else:
         raise ValueError("Type de modèle non reconnu. Utilisez 'knn', 'xgb' ou 'xgb_opt'.")
 
-    # Résumé final pour l'utilisateur
-    for i in range(len(prediction)):
-        etat = "malade" if prediction[i] == 1 else "non malade"
-        print(f"Patient {i+1} : Probabilité = {proba[i]:.2%} → {etat}")
-
-    # Le retour est un tuple (prediction, proba)
-    # - prediction : tableau numpy des classes prédites (0=non malade, 1=malade)
-    # - proba : tableau numpy des probabilités prédites d'être malade (valeurs entre 0 et 1)
-    return prediction, proba
+    if len(prediction) > 0:
+        etat = "Malade" if prediction[0] == 1 else "Non malade"
+        return f"{etat} (précision : {proba[0] * 100:.2f}%)"
+    else:
+        return "Aucune donnée"
 
 if __name__ == "__main__":
     pass  
