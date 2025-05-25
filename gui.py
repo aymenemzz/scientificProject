@@ -19,8 +19,10 @@ BLACK = (0, 0, 0)
 BLUE = (0, 120, 215)
 RED = (200, 0, 0)
 
-# Champs avec type et options
+DROPDOWN_OPTION_HEIGHT = 30
+
 fields = [
+    {"key": "Age", "label": "Âge", "type": "number"},
     {"key": "Sex", "label": "Sexe", "type": "dropdown", "options": ["M", "F"]},
     {"key": "ChestPainType", "label": "Douleur thoracique", "type": "dropdown",
      "options": ["Angine typique", "Angine atypique", "Douleur non angineuse", "Asymptomatique"]},
@@ -41,7 +43,7 @@ dropdown_open = None
 active_field = None
 result_text = ""
 
-
+# Transforme les entrées utilisateur dans le même format que les données initiales
 def transform_input(inputs):
     key_map = {
         'ChestPainType': 'chestpaintype',
@@ -88,26 +90,22 @@ def transform_input(inputs):
             elif internal_key == 'st_slop':
                 transformed[key] = st_slope_map.get(value, value)
 
-    # Remove the 'model' key if it exists
+    # On enlève la clé 'model' car elle n'est pas nécessaire pour la prédiction
     transformed.pop('model', None)
-
     return transformed
 
-
-def dict_to_csv(data, filename='newPatient.csv'):
+# Converti le dictionnaire "data" en CSV tout simplement
+def dict_to_csv(data, filename):
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=data.keys())
         writer.writeheader()
         writer.writerow(data)
 
-
 def draw_text(surface, text, pos, font, color=BLACK):
     surface.blit(font.render(text, True, color), pos)
 
-
 def predict_dummy_model(data):
     return random.choice([0, 1]), random.choice([0, 1])
-
 
 def main():
     global active_field, dropdown_open, result_text
@@ -131,10 +129,10 @@ def main():
 
                 if dropdown_open == key:
                     for i, option in enumerate(field["options"]):
-                        opt_rect = pygame.Rect(400, y_offset + 30 * (i + 1), 300, 30)
+                        opt_rect = pygame.Rect(400, y_offset + DROPDOWN_OPTION_HEIGHT * (i + 1), 300, DROPDOWN_OPTION_HEIGHT)
                         pygame.draw.rect(screen, WHITE, opt_rect)
                         pygame.draw.rect(screen, GRAY, opt_rect, 1)
-                        draw_text(screen, option, (410, y_offset + 5 + 30 * (i + 1)), FONT)
+                        draw_text(screen, option, (410, y_offset + 5 + DROPDOWN_OPTION_HEIGHT * (i + 1)), FONT)
 
             else:
                 pygame.draw.rect(screen, BLUE if active_field == key else GRAY, rect, 2)
@@ -142,9 +140,8 @@ def main():
 
             y_offset += 50
             if dropdown_open == key:
-                y_offset += 30 * len(field["options"])
+                y_offset += DROPDOWN_OPTION_HEIGHT * len(field["options"])
 
-        # Bouton de prédiction
         predict_rect = pygame.Rect(50, y_offset + 20, 200, 40)
         pygame.draw.rect(screen, BLUE, predict_rect)
         draw_text(screen, "Prédire", (110, y_offset + 30), FONT, WHITE)
@@ -158,9 +155,12 @@ def main():
             elif event.type == pygame.MOUSEWHEEL:
                 scroll_offset += event.y * scroll_speed
 
+            elif event.type == pygame.MOUSEWHEEL:
+                scroll_offset += event.y * scroll_speed
+
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    print(transform_input(inputs))  # Print inputs when spacebar is pressed
+                    print(transform_input(inputs))
                 elif active_field:
                     if event.key == pygame.K_BACKSPACE:
                         inputs[active_field] = inputs[active_field][:-1]
@@ -169,11 +169,11 @@ def main():
                     else:
                         inputs[active_field] += event.unicode
 
-            elif event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
                 y_cursor = 30 + scroll_offset
                 clicked = False
-                # dropdown_open = None if dropdown_open else dropdown_open
+
                 for field in fields:
                     key, ftype = field["key"], field["type"]
                     rect = pygame.Rect(400, y_cursor, 300, 30)
@@ -188,46 +188,57 @@ def main():
 
                     if dropdown_open == key and ftype == "dropdown":
                         for i, option in enumerate(field["options"]):
-                            opt_rect = pygame.Rect(400, y_cursor + 30 * (i + 1), 300, 30)
+                            opt_rect = pygame.Rect(400, y_cursor + DROPDOWN_OPTION_HEIGHT * (i + 1), 300, DROPDOWN_OPTION_HEIGHT)
                             if opt_rect.collidepoint(mx, my):
                                 inputs[key] = option
                                 dropdown_open = None
                                 clicked = True
                                 break
-                        y_cursor += 30 * len(field["options"])
+                        y_cursor += DROPDOWN_OPTION_HEIGHT * len(field["options"])
                     y_cursor += 50
 
                 if not clicked:
                     active_field = None
 
+                # Lorsque l'utilisateur clique sur le bouton de prédiction
                 if predict_rect.collidepoint(mx, my):
                     if all(inputs[f["key"]] for f in fields):
-                        dict_to_csv(transform_input(inputs))
-                        model = inputs["model"]
-                        predict(model)
-
-                        knn_pred, xgb_pred = predict_dummy_model(inputs)
-                        result_text = f"KNN: {'Malade' if knn_pred else 'Sain'} | XGBoost: {'Malade' if xgb_pred else 'Sain'}"
+                        dict_to_csv(transform_input(inputs), 'newPatient.csv') # Enregistre les données dans un fichier CSV
+                        model = inputs["model"] # Récupère le modèle sélectionné
+                        result = None
+                        if model == "KNN":
+                            result = predict("knn")
+                        result_text = ""
+                        if model == "KNN":
+                            result_text += "KNN: "
+                        elif model == "XGBoost":
+                            result_text += "XGBoost: "
+                        elif model == "Neural Network":
+                            result_text += "Neural Network: "
+                        if result == 1:
+                            result_text += "Malade"
+                        else:
+                            result_text += "Sain"
+                        # knn_pred, xgb_pred = predict_dummy_model(inputs)
+                        # result_text = f"KNN: {'Malade' if knn_pred else 'Sain'} | XGBoost: {'Malade' if xgb_pred else 'Sain'}"
                     else:
                         result_text = "Veuillez remplir tous les champs."
 
-            elif event.type == pygame.KEYDOWN and active_field:
-                if event.key == pygame.K_BACKSPACE:
-                    inputs[active_field] = inputs[active_field][:-1]
-                elif event.key == pygame.K_RETURN:
-                    active_field = None
-                else:
-                    inputs[active_field] += event.unicode
+        dropdown_extra_height = 0
+        if dropdown_open:
+            for field in fields:
+                if field["key"] == dropdown_open and field["type"] == "dropdown":
+                    dropdown_extra_height += DROPDOWN_OPTION_HEIGHT * len(field["options"])
+                    break
 
-        # Clamp scroll
-        total_form_height = y_offset + 100
+        total_form_height = y_offset + dropdown_extra_height + 200
+
         max_scroll = max(0, total_form_height - HEIGHT)
-        scroll_offset = max(min(scroll_offset, 0), -max_scroll)
+        scroll_offset = min(max(scroll_offset, -max_scroll), 0)
         pygame.display.flip()
         clock.tick(30)
 
     pygame.quit()
-
 
 if __name__ == "__main__":
     main()
