@@ -1,14 +1,19 @@
 import neuralModel
-import nbimporter
-from DataCleaning import predict_model
+import joblib
+import pandas as pd
 
 def predict(model_name):
     if model_name == "knn":
-        return predict_model("newPatient.csv", "knn")
+        df_new_patient = pd.read_csv('./newPatient.csv')
+        preprocessor = joblib.load("models/knn_preprocessor.pkl")
+        X_transformed = preprocessor.transform(df_new_patient)
+        knn_model = joblib.load("models/knn_model.pkl")
+        prediction = knn_model.predict(X_transformed)[0]
+        return prediction
     elif model_name == "xgboost":
-        return predict_model("newPatient.csv", "xgb")
+        return predict("newPatient.csv", "xgb")
     elif model_name == "xgboost_opt":
-        return predict_model("newPatient.csv", "xgb_opt")
+        return predict("newPatient.csv", "xgb_opt")
     elif model_name == "neural":
         return neuralModel.predict("newPatient.csv")
     else:
